@@ -152,31 +152,31 @@ for (command in commands) {
 		
 		// the 'source' entry is to help Mantis identify which Source plugin should handle this payload
 		def payloadMap = [
-			"payload":[ 
-				"source":"gitblit", 
-				"commits":[
-					"commit": [
-						"author":[
-							"email":commit.authorIdent.emailAddress,
-							"name":commit.authorIdent.name
+			payload:[ 
+				source:"gitblit", 
+				commits:[
+					commit: [
+						author:[
+							email:commit.authorIdent.emailAddress,
+							name:commit.authorIdent.name
 						],
-					    "committer":[
-							"email":commit.committerIdent.emailAddress,
-							"name":commit.committerIdent.name
+					    committer:[
+							email:commit.committerIdent.emailAddress,
+							name:commit.committerIdent.name
 						],
-						"added":adds,
-						"modified":mods,
-						"removed":dels,
-						"id":commit.id.toString(),
-						"branch":r.branch,
-						"url":url+"/commit/"+repository.name+"/"+commit.id,
-						"message":commit.fullMessage
+						added:adds,
+						modified:mods,
+						removed:dels,
+						id:commit.id.toString(),
+						branch:r.branch,
+						url:url+"/commit/"+repository.name+"/"+commit.id,
+						message:commit.fullMessage
 					]						    
 				]
 			] 
 		] 
 
-		def jsonPayload = JsonUtils.toJson(payloadMap)
+		def jsonPayload = JsonUtils.toJsonString(payloadMap)
 
 		logger.info("sending payload (${jsonPayload}) to ${urlString}")
 		
