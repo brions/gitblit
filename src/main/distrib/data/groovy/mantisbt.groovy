@@ -113,13 +113,9 @@ Repository r = gitblit.getRepository(repository.name)
 def urlBase = repository.customFields.mantisBTUrl
 def apiKey = repository.customFields.mantisBTApiKey
 
-logger.info("urlBase: ${urlBase}\napiKey: ${apiKey}\ncommands: ${commands}")
-
 for (command in commands) {
-	logger.info("handling command ${command}")
 	
 	for( commit in JGitUtils.getRevLog(r, command.oldId.name, command.newId.name).reverse() ) {
-		logger.info("processing commit ${commit.id}")
 
 		Set<String> adds = new HashSet<>();
 		Set<String> mods = new HashSet<>();
@@ -186,14 +182,14 @@ for (command in commands) {
 		connection.doOutput = true
 
 		def writer = new OutputStreamWriter(connection.outputStream)
-		writer.write(jsonPayload)
+		writer.write("payload=${jsonPayload}")
 		writer.flush()
 		writer.close()
 		connection.connect()
 
 		def responseString = connection.content.text
            
-		if( !"OK".equals(responseString) ) {
+		if( !"OK".equalsIgnoreCase(responseString) ) {
 			throw new Exception( "Problem posting ${mantisUrl} - ${responseString}" );
 		}
 	}
