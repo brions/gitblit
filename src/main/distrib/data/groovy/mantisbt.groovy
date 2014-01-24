@@ -95,7 +95,6 @@ import java.util.HashSet;
  * Cusom Fileds Used by This script
  *   mantisBTUrl - base URL to MantisBT (ie. http://bugs.yourdomain.com/mantis/)
  *   mantisBTApiKey - API key configured in MantisBT at ${mantisBTUrl}/plugin.php?page=Source/manage_config_page
- *   mantisBTBugIdRegex - regex pattern used to match on bug id in a commit message
  */
 
 // Indicate we have started the script
