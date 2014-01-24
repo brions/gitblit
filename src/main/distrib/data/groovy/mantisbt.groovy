@@ -189,7 +189,7 @@ for (command in commands) {
 
 		def responseString = connection.content.text
            
-		if( !"OK".equalsIgnoreCase(responseString) ) {
+		if( !"OK".equalsIgnoreCase(responseString.trim()) ) {
 			throw new Exception( "Problem posting ${mantisUrl} - ${responseString}" );
 		}
 	}
