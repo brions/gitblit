@@ -165,6 +165,7 @@ for (command in commands) {
 						removed:dels,
 						id:ObjectId.toString(commit.id),
 						branch:r.branch,
+						project:repository.name,
 						url:url+"/commit/"+repository.name+"/"+ObjectId.toString(commit.id),
 						message:commit.fullMessage
 					]						    
