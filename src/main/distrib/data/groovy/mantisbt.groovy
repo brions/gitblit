@@ -146,12 +146,9 @@ for (command in commands) {
 		def urlString = "http://requestb.in/rh128zrh"
 		logger.info( urlString );
 		
-		for()
-		
 		// Post the payload data as JSON to the URL and make sure we get an "OK" response
 		// The payload structure supports multiple commits, but for pushing commits into Mantis
 		// we push one at a time since Mantis doesn't know how to handle a multi-commit push
-		def payloadMap = [:]
 		
 		// the 'source' entry is to help Mantis identify which Source plugin should handle this payload
 		def payloadMap = [
