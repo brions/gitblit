@@ -133,12 +133,13 @@ for (command in commands) {
 		}
 		
 		// Example URL - http://bugs.yourdomain.com/mantis/plugin.php?page=Source/checkin&apiKey=${apiKey}
-		
-		// uncomment the following line for the real urlString
-		//def urlString = "${urlBase}/plugin.php?page=Source/checkin&api_key=${apiKey}"
-		
+
 		// this urlString uses RequestBin for testing (to see what gitblit is sending to mantis
-		def urlString = "http://requestb.in/rh128zrh"
+		//def urlString = "http://requestb.in/rh128zrh"
+
+		// uncomment the following line for the real urlString
+		def urlString = "${urlBase}/plugin.php?page=Source/checkin&api_key=${apiKey}"
+		
 		logger.info( urlString );
 		
 		// Post the payload data as JSON to the URL and make sure we get an "OK" response
