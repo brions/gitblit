@@ -99,7 +99,7 @@ import java.util.HashSet;
  */
 
 // Indicate we have started the script
-logger.info("fogbugz hook triggered by ${user.username} for ${repository.name}")
+logger.info("mantisbt hook triggered by ${user.username} for ${repository.name}")
 
 /*
  * Primitive email notification.
@@ -113,9 +113,14 @@ Repository r = gitblit.getRepository(repository.name)
 def urlBase = repository.customFields.mantisBTUrl
 def apiKey = repository.customFields.mantisBTApiKey
 
-for (command in commands) {
+logger.info("urlBase: ${urlBase}\napiKey: ${apiKey}\ncommands: ${commands}")
 
+for (command in commands) {
+	logger.info("handling command ${command}")
+	
 	for( commit in JGitUtils.getRevLog(r, command.oldId.name, command.newId.name).reverse() ) {
+		logger.info("processing commit ${commit.id}")
+
 		Set<String> adds = new HashSet<>();
 		Set<String> mods = new HashSet<>();
 		Set<String> dels = new HashSet<>();
@@ -176,6 +181,8 @@ for (command in commands) {
 
 		def jsonPayload = JsonUtils.toJson(payloadMap)
 
+		logger.info("sending payload (${jsonPayload}) to ${urlString}")
+		
 		def mantisUrl = new URL(urlString)
 		def connection = mantisUrl.openConnection()
 		connection.setRequestMethod("POST")
