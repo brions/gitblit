@@ -148,29 +148,32 @@ for (command in commands) {
 		
 		// the 'source' entry is to help Mantis identify which Source plugin should handle this payload
 		def payloadMap = [
-			payload:[ 
-				source:"gitblit", 
-				commits:[
-					commit: [
-						author:[
-							email:commit.authorIdent.emailAddress,
-							name:commit.authorIdent.name
-						],
-					    committer:[
-							email:commit.committerIdent.emailAddress,
-							name:commit.committerIdent.name
-						],
-						added:adds,
-						modified:mods,
-						removed:dels,
-						id:ObjectId.toString(commit.id),
-						branch:r.branch,
-						project:repository.name,
-						url:url+"/commit/"+repository.name+"/"+ObjectId.toString(commit.id),
-						message:commit.fullMessage
-					]						    
-				]
-			] 
+			source:"gitblit",
+			before:ObjectId.toString(command.oldId),
+			after:ObjectId.toString(command.newId),
+			ref:r.fullBranch,
+			repo:[
+				name:repository.name,
+				url:url+"/summary/"+repository.name
+			], 
+			commits:[
+				commit: [
+					author:[
+						email:commit.authorIdent.emailAddress,
+						name:commit.authorIdent.name
+					],
+				    committer:[
+						email:commit.committerIdent.emailAddress,
+						name:commit.committerIdent.name
+					],
+					added:adds,
+					modified:mods,
+					removed:dels,
+					id:ObjectId.toString(commit.id),
+					url:url+"/commit/"+repository.name+"/"+ObjectId.toString(commit.id),
+					message:commit.fullMessage
+				]						    
+			]
 		] 
 
 		def jsonPayload = JsonUtils.toJsonString(payloadMap)
