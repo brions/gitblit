@@ -167,9 +167,9 @@ for (command in commands) {
 						added:adds,
 						modified:mods,
 						removed:dels,
-						id:commit.id.toString(),
+						id:ObjectId.toString(commit.id),
 						branch:r.branch,
-						url:url+"/commit/"+repository.name+"/"+commit.id,
+						url:url+"/commit/"+repository.name+"/"+ObjectId.toString(commit.id),
 						message:commit.fullMessage
 					]						    
 				]
@@ -187,8 +187,8 @@ for (command in commands) {
 
 		def writer = new OutputStreamWriter(connection.outputStream)
 		writer.write(jsonPayload)
-		writer.flush
-		writer.close
+		writer.flush()
+		writer.close()
 		connection.connect()
 
 		def responseString = connection.content.text
