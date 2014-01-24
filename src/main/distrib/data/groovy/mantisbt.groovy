@@ -109,52 +109,88 @@ logger.info("fogbugz hook triggered by ${user.username} for ${repository.name}")
 Repository r = gitblit.getRepository(repository.name)
 
 // pull custom fields from repository specific values
-// groovy.customFields = "mantisBTUrl=MantisBT Base URL" "mantisBTApiKey=MantisBT API Key" "mantisBTBugIdRegex="MantisBT Commit Message Bug ID Regular Expression"
+// groovy.customFields = "mantisBTUrl=MantisBT Base URL" "mantisBTApiKey=MantisBT API Key"
 def urlBase = repository.customFields.mantisBTUrl
 def apiKey = repository.customFields.mantisBTApiKey
-def bugIdRegex = repository.customFields.mantisBTBugIdRegex
 
 for (command in commands) {
 
 	for( commit in JGitUtils.getRevLog(r, command.oldId.name, command.newId.name).reverse() ) {
-		// Example URL - http://bugs.yourdomain.com/mantis/plugin.php?page=Source/checkin&apiKey=${apiKey}
-		def bugIds = [];
-		// Grab the second matcher and then filter out each numeric ID and add it to array
-        (commit.getFullMessage() =~ bugIdRegex).each{ (it[1] =~ "\\d+").each {bugIds.add(it)} }
+		Set<String> adds = new HashSet<>();
+		Set<String> mods = new HashSet<>();
+		Set<String> dels = new HashSet<>();
 		
-		for( file in getFiles(r, commit) ) {
-			for( bugId in bugIds ) {
-				def urlString = "${urlBase}/plugin.php?page=Source/checkin&api_key=${apiKey}"
-				logger.info( urlString );
-				// Post the payload data as JSON to the URL and make sure we get an "OK" response
-				def payloadMap = [
-					"payload":[
-						"commits":[
-							"authorEmail":commit.authorIdent.emailAddress, 
-							"authorName":commit.authorIdent.name
-						] 
-					] 
-				]
-
-				def jsonPayload = JsonUtils.toJson(payloadMap)
-
-				def url = new URL(url)
-				def connection = url.openConnection()
-				connection.setRequestMethod("POST")
-				connection.doOutput = true
-
-				def writer = new OutputStreamWriter(connection.outputStream)
-				writer.write(jsonPayload)
-				writer.flush
-				writer.close
-				connection.connect()
-
-				def responseString = connection.content.text
-                   
-				if( !"OK".equals(responseString) ) {
-					throw new Exception( "Problem posting ${url} - ${responseString}" );
-				}
+		for( diff in getDiffs(r, commit) ) {
+			if (diff.changeType == DiffEntry.ChangeType.ADD ||
+				diff.changeType == DiffEntry.ChangeType.COPY) {
+				adds.add(diff.newPath);
+			} else if (diff.changeType == DiffEntry.ChangeType.DELETE) {
+				dels.add(diff.newPath);
+			} else if (diff.changeType == DiffEntry.ChangeType.RENAME ||
+					   diff.changeType == DiffEntry.ChangeType.MODIFY) {
+			    mods.add(diff.newPath);
 			}
+		}
+		
+		// Example URL - http://bugs.yourdomain.com/mantis/plugin.php?page=Source/checkin&apiKey=${apiKey}
+		
+		// uncomment the following line for the real urlString
+		//def urlString = "${urlBase}/plugin.php?page=Source/checkin&api_key=${apiKey}"
+		
+		// this urlString uses RequestBin for testing (to see what gitblit is sending to mantis
+		def urlString = "http://requestb.in/rh128zrh"
+		logger.info( urlString );
+		
+		for()
+		
+		// Post the payload data as JSON to the URL and make sure we get an "OK" response
+		// The payload structure supports multiple commits, but for pushing commits into Mantis
+		// we push one at a time since Mantis doesn't know how to handle a multi-commit push
+		def payloadMap = [:]
+		
+		// the 'source' entry is to help Mantis identify which Source plugin should handle this payload
+		def payloadMap = [
+			"payload":[ 
+				"source":"gitblit", 
+				"commits":[
+					"commit": [
+						"author":[
+							"email":commit.authorIdent.emailAddress,
+							"name":commit.authorIdent.name
+						],
+					    "committer":[
+							"email":commit.committerIdent.emailAddress,
+							"name":commit.committerIdent.name
+						],
+						"added":adds,
+						"modified":mods,
+						"removed":dels,
+						"id":commit.id.toString(),
+						"branch":r.branch,
+						"url":url+"/commit/"+repository.name+"/"+commit.id,
+						"message":commit.fullMessage
+					]						    
+				]
+			] 
+		] 
+
+		def jsonPayload = JsonUtils.toJson(payloadMap)
+
+		def mantisUrl = new URL(urlString)
+		def connection = mantisUrl.openConnection()
+		connection.setRequestMethod("POST")
+		connection.doOutput = true
+
+		def writer = new OutputStreamWriter(connection.outputStream)
+		writer.write(jsonPayload)
+		writer.flush
+		writer.close
+		connection.connect()
+
+		def responseString = connection.content.text
+           
+		if( !"OK".equals(responseString) ) {
+			throw new Exception( "Problem posting ${mantisUrl} - ${responseString}" );
 		}
 	}
 }
@@ -162,9 +198,9 @@ for (command in commands) {
 r.close()
 
 /**
- * For a given commit, find all files part of it.
+ * For a given commit, find all files changed as part of it.
  */
-def Set<String> getFiles(Repository r, RevCommit commit) {
+def Set<DiffEntry> getDiffs(Repository r, RevCommit commit) {
 	DiffFormatter formatter = new DiffFormatter(DisabledOutputStream.INSTANCE)
 	formatter.setRepository(r)
 	formatter.setDetectRenames(true)
@@ -181,11 +217,5 @@ def Set<String> getFiles(Repository r, RevCommit commit) {
 	}
 	rw.dispose()
 	
-	// Grab each filepath
-	Set<String> fileNameSet = new HashSet<String>( diffs.size() );
-	for (DiffEntry entry in diffs) {
-		FileHeader header = formatter.toFileHeader(entry)
-		fileNameSet.add( header.newPath )
-	}
-	return fileNameSet;
+	return diffs;
 }
