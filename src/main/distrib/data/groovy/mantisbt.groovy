@@ -166,6 +166,7 @@ for (command in commands) {
 						email:commit.committerIdent.emailAddress,
 						name:commit.committerIdent.name
 					],
+				    date:commit.commitTime,
 					added:adds,
 					modified:mods,
 					removed:dels,
