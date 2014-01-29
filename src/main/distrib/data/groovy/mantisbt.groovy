@@ -114,11 +114,14 @@ def apiKey = repository.customFields.mantisBTApiKey
 
 for (command in commands) {
 	
+	def commits = [];
+	
 	for( commit in JGitUtils.getRevLog(r, command.oldId.name, command.newId.name).reverse() ) {
 
 		Set<String> adds = new HashSet<>();
 		Set<String> mods = new HashSet<>();
 		Set<String> dels = new HashSet<>();
+		Set<String> parents = new HashSet<>();
 		
 		for( diff in getDiffs(r, commit) ) {
 			if (diff.changeType == DiffEntry.ChangeType.ADD ||
@@ -132,71 +135,78 @@ for (command in commands) {
 			}
 		}
 		
-		// Example URL - http://bugs.yourdomain.com/mantis/plugin.php?page=Source/checkin&apiKey=${apiKey}
-
-		// this urlString uses RequestBin for testing (to see what gitblit is sending to mantis
-		//def urlString = "http://requestb.in/rh128zrh"
-
-		// uncomment the following line for the real urlString
-		def urlString = "${urlBase}/plugin.php?page=Source/checkin&api_key=${apiKey}"
-		
-		logger.info( urlString );
-		
-		// Post the payload data as JSON to the URL and make sure we get an "OK" response
-		// The payload structure supports multiple commits, but for pushing commits into Mantis
-		// we push one at a time since Mantis doesn't know how to handle a multi-commit push
-		
-		// the 'source' entry is to help Mantis identify which Source plugin should handle this payload
-		def payloadMap = [
-			source:"gitblit",
-			before:ObjectId.toString(command.oldId),
-			after:ObjectId.toString(command.newId),
-			ref:r.fullBranch,
-			repo:[
-				name:repository.name,
-				url:url+"/summary/"+repository.name
-			], 
-			commits:[
-				commit: [
-					author:[
-						email:commit.authorIdent.emailAddress,
-						name:commit.authorIdent.name
-					],
-				    committer:[
-						email:commit.committerIdent.emailAddress,
-						name:commit.committerIdent.name
-					],
-				    date:commit.commitTime,
-					added:adds,
-					modified:mods,
-					removed:dels,
-					id:ObjectId.toString(commit.id),
-					url:url+"/commit/"+repository.name+"/"+ObjectId.toString(commit.id),
-					message:commit.fullMessage
-				]						    
-			]
-		] 
-
-		def jsonPayload = JsonUtils.toJsonString(payloadMap)
-
-		logger.info("sending payload (${jsonPayload}) to ${urlString}")
-		
-		def mantisUrl = new URL(urlString)
-		def connection = mantisUrl.openConnection()
-		connection.setRequestMethod("POST")
-		connection.doOutput = true
-
-		def writer = new OutputStreamWriter(connection.outputStream)
-		writer.write("payload=${jsonPayload}")
-		writer.flush()
-		writer.close()
-		connection.connect()
-
-		def responseString = connection.content.text
-           
-		if( !"OK".equalsIgnoreCase(responseString.trim()) ) {
-			throw new Exception( "Problem posting ${mantisUrl} - ${responseString}" );
+		for ( parent in commit.parents ) {
+			parents.add(ObjectId.toString(parent.id));
 		}
+		
+		def commitMap = [
+			author:[
+				email:commit.authorIdent.emailAddress,
+				name:commit.authorIdent.name
+			],
+		    committer:[
+				email:commit.committerIdent.emailAddress,
+				name:commit.committerIdent.name
+			],
+		    date:commit.commitTime,
+			added:adds,
+			modified:mods,
+			removed:dels,
+			id:ObjectId.toString(commit.id),
+			parents:parents,
+			url:url+"/commit/"+repository.name+"/"+ObjectId.toString(commit.id),
+			message:commit.fullMessage
+		]
+		
+		commits.add(commitMap);						    
+	}
+	
+	// Example URL - http://bugs.yourdomain.com/mantis/plugin.php?page=Source/checkin&apiKey=${apiKey}
+
+	// this urlString uses RequestBin for testing (to see what gitblit is sending to mantis
+	//def urlString = "http://requestb.in/rh128zrh"
+
+	// uncomment the following line for the real urlString
+	def urlString = "${urlBase}/plugin.php?page=Source/checkin&api_key=${apiKey}"
+	
+	logger.info( urlString );
+	
+	// Post the payload data as JSON to the URL and make sure we get an "OK" response
+	// The payload structure supports multiple commits, but for pushing commits into Mantis
+	// we push one at a time since Mantis doesn't know how to handle a multi-commit push
+	
+	// the 'source' entry is to help Mantis identify which Source plugin should handle this payload
+	def payloadMap = [
+		source:"gitblit",
+		before:ObjectId.toString(command.oldId),
+		after:ObjectId.toString(command.newId),
+		ref:r.fullBranch,
+		repo:[
+			name:repository.name,
+			url:url+"/summary/"+repository.name
+		],
+		commits:commits
+	]
+		
+	def jsonPayload = JsonUtils.toJsonString(payloadMap)
+
+	logger.info("sending payload (${jsonPayload}) to ${urlString}")
+	
+	def mantisUrl = new URL(urlString)
+	def connection = mantisUrl.openConnection()
+	connection.setRequestMethod("POST")
+	connection.doOutput = true
+
+	def writer = new OutputStreamWriter(connection.outputStream)
+	writer.write("payload=${jsonPayload}")
+	writer.flush()
+	writer.close()
+	connection.connect()
+
+	def responseString = connection.content.text
+       
+	if( !"OK".equalsIgnoreCase(responseString.trim()) ) {
+		throw new Exception( "Problem posting ${mantisUrl} - ${responseString}" );
 	}
 }
 // close the repository reference
