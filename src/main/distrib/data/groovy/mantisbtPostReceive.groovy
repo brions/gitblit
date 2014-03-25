@@ -202,12 +202,6 @@ for (command in commands) {
 	writer.flush()
 	writer.close()
 	connection.connect()
-
-	def responseString = connection.content.text
-       
-	if( !"OK".equalsIgnoreCase(responseString.trim()) ) {
-		throw new Exception( "Problem posting ${mantisUrl} - ${responseString}" );
-	}
 }
 // close the repository reference
 r.close()
